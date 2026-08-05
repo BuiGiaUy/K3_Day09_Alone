@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import platform
+from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Callable, TypeVar
@@ -180,10 +181,11 @@ def publish_run(
     """Publish a completely verified run using atomic per-file replacement."""
     output_dir.mkdir(parents=True, exist_ok=True)
     logging_dir.mkdir(parents=True, exist_ok=True)
+    expected_names = {f"{case_id}.json" for case_id in outputs}
     extras = [
         path.name
         for path in output_dir.iterdir()
-        if path.is_file() and path.suffix != ".json" and path.name != ".gitkeep"
+        if path.is_file() and path.name not in expected_names and path.name != ".gitkeep"
     ]
     if extras:
         raise AgentError(f"unexpected files in output directory: {', '.join(extras)}")
@@ -202,10 +204,23 @@ def publish_run(
         for event in events
     )
     _atomic_text(logging_dir / "trace.jsonl", trace_text)
-    _atomic_json(logging_dir / "metadata.json", build_metadata())
+    _atomic_json(
+        logging_dir / "metadata.json",
+        build_metadata(
+            processed_cases=len(outputs),
+            trace_events=len(events),
+            issue_counts=Counter(
+                output["assessment"]["primary_issue"] for output in outputs.values()
+            ),
+        ),
+    )
 
 
-def build_metadata() -> dict[str, Any]:
+def build_metadata(
+    processed_cases: int | None = None,
+    trace_events: int | None = None,
+    issue_counts: Counter[str] | None = None,
+) -> dict[str, Any]:
     agents = [
         "CoordinatorAgent",
         "OrderSellerAgent",
@@ -223,6 +238,9 @@ def build_metadata() -> dict[str, Any]:
         "execution_engine": EXECUTION_ENGINE,
         "framework": "Python standard library dataclasses",
         "runtime": f"Python {platform.python_version()}",
+        "processed_cases": processed_cases,
+        "trace_events": trace_events,
+        "issue_counts": dict(sorted(issue_counts.items())) if issue_counts else None,
         "agents": [
             {"name": name, "implementation": "deterministic_python_component"}
             for name in agents

@@ -41,6 +41,16 @@ class AgentError(RuntimeError):
     """Raised when an agent cannot produce a valid deterministic result."""
 
 
+CONFIDENCE_BY_ISSUE = {
+    "canceled_order_paid": Decimal("0.98"),
+    "unavailable_order_paid": Decimal("0.98"),
+    "late_delivery_seller": Decimal("0.94"),
+    "late_delivery_logistics": Decimal("0.92"),
+    "valid_split_payment": Decimal("0.90"),
+    "unsupported_late_claim": Decimal("0.88"),
+}
+
+
 def money(value: Decimal) -> Decimal:
     return value.quantize(MONEY_QUANTUM, rounding=ROUND_HALF_UP)
 
@@ -213,7 +223,7 @@ class PolicyAgent:
         return PolicyDecision(
             primary_issue=issue,
             case_status="action_required" if refund > 0 else "no_action",
-            confidence=Decimal("1.0"),
+            confidence=CONFIDENCE_BY_ISSUE[issue],
             cause_code=cause,
             responsible_parties=parties,
             recommended_refund=money(refund),

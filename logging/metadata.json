@@ -6,7 +6,17 @@
   "model_role": "compatible_reference_model",
   "execution_engine": "deterministic_python",
   "framework": "Python standard library dataclasses",
-  "runtime": "Python 3.10.11",
+  "runtime": "Python 3.12.10",
+  "processed_cases": 50,
+  "trace_events": 500,
+  "issue_counts": {
+    "canceled_order_paid": 8,
+    "late_delivery_logistics": 8,
+    "late_delivery_seller": 8,
+    "unavailable_order_paid": 8,
+    "unsupported_late_claim": 9,
+    "valid_split_payment": 9
+  },
   "agents": [
     {
       "name": "CoordinatorAgent",
