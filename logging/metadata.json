@@ -1,0 +1,36 @@
+{
+  "model_name": "Llama 3.1 8B Instruct",
+  "model_parameter_size_billion": 8,
+  "model_provider": "Groq",
+  "model_invocation_enabled": false,
+  "model_role": "compatible_reference_model",
+  "execution_engine": "deterministic_python",
+  "framework": "Python standard library dataclasses",
+  "runtime": "Python 3.10.11",
+  "agents": [
+    {
+      "name": "CoordinatorAgent",
+      "implementation": "deterministic_python_component"
+    },
+    {
+      "name": "OrderSellerAgent",
+      "implementation": "deterministic_python_component"
+    },
+    {
+      "name": "PaymentAgent",
+      "implementation": "deterministic_python_component"
+    },
+    {
+      "name": "DeliveryAgent",
+      "implementation": "deterministic_python_component"
+    },
+    {
+      "name": "PolicyAgent",
+      "implementation": "deterministic_python_component"
+    },
+    {
+      "name": "VerifierAgent",
+      "implementation": "deterministic_python_component"
+    }
+  ]
+}
