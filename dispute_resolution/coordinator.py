@@ -158,7 +158,7 @@ class CoordinatorAgent:
                     for party in decision.responsible_parties
                 ],
             },
-            "evidence_ids": _build_evidence(order, payment, decision.cause_code),
+            "evidence_ids": _build_evidence(order, payment, decision),
             "financial_resolution": {
                 "currency": "BRL",
                 "item_total_brl": float(money(order.item_total)),

@@ -3,10 +3,9 @@
 ## Deterministic implementation
 
 This repository includes a standard-library Python 3.10 implementation with
-six autonomous software agents and typed dataclass handoffs. Llama 3.1 8B
-Instruct on Groq is declared as a compatible reference model but is not invoked;
-all decisions are derived deterministically from the CSV data and
-`EC_POLICY_V1`.
+six autonomous software agents and typed dataclass handoffs. `qwen-qwen3-8b`
+is declared as a compatible reference model but is not invoked; all decisions
+are derived deterministically from the CSV data and `EC_POLICY_V1`.
 
 Run and publish the verified 50-case result:
 

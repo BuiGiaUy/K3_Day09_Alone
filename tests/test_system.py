@@ -14,12 +14,14 @@ from dispute_resolution.agents import (
     OrderSellerAgent,
     PaymentAgent,
     PolicyAgent,
+    _build_evidence,
 )
 from dispute_resolution.coordinator import CoordinatorAgent, build_metadata
 from dispute_resolution.models import (
     CaseRequest,
     DeliveryFinding,
     DeliveryTask,
+    ItemFinding,
     ItemRecord,
     OrderRecord,
     OrderSellerFinding,
@@ -27,7 +29,9 @@ from dispute_resolution.models import (
     PaymentFinding,
     PaymentRecord,
     PaymentTask,
+    PolicyDecision,
     PolicyTask,
+    ResponsibleParty,
     VerificationTask,
 )
 from dispute_resolution.repository import OlistRepository, load_cases
@@ -119,9 +123,9 @@ class PolicyTests(unittest.TestCase):
         ]
         for status, paid, delivered, expected in scenarios:
             with self.subTest(expected=expected):
-                self.assertEqual(
-                    self.decide(status, paid, delivered).primary_issue, expected
-                )
+                decision = self.decide(status, paid, delivered)
+                self.assertEqual(decision.primary_issue, expected)
+                self.assertEqual(decision.confidence, Decimal("1.0"))
 
     def test_canceled_rule_has_priority_over_late_and_split(self) -> None:
         decision = self.decide(
@@ -197,6 +201,68 @@ class DomainAgentTests(unittest.TestCase):
             PaymentAgent(StubRepository(source_order, payments=(above_limit,)))
             .handle(task)
             .reconciled
+        )
+
+    def test_evidence_is_specific_to_policy_issue(self) -> None:
+        order = OrderSellerFinding(
+            order_id="order-1",
+            customer_id="customer-1",
+            order_status="delivered",
+            carrier_date=DATE,
+            delivered_date=DATE,
+            estimated_date=DATE,
+            items=(
+                ItemFinding(
+                    item_id=1,
+                    product_id="product-1",
+                    seller_id="seller-1",
+                    shipping_limit_date=DATE,
+                    handoff_late=False,
+                    price=Decimal("90.00"),
+                    freight=Decimal("10.00"),
+                ),
+            ),
+            seller_ids=("seller-1",),
+            item_total=Decimal("90.00"),
+            freight_total=Decimal("10.00"),
+        )
+        payment = payment_finding()
+        canceled = PolicyDecision(
+            primary_issue="canceled_order_paid",
+            case_status="action_required",
+            confidence=Decimal("1.0"),
+            cause_code="ORDER_CANCELED_AFTER_PAYMENT",
+            responsible_parties=(ResponsibleParty("platform", "OLIST_PLATFORM"),),
+            recommended_refund=Decimal("100.00"),
+            action="issue_full_refund",
+        )
+        seller_late = PolicyDecision(
+            primary_issue="late_delivery_seller",
+            case_status="action_required",
+            confidence=Decimal("1.0"),
+            cause_code="SELLER_HANDOFF_AFTER_LIMIT",
+            responsible_parties=(ResponsibleParty("seller", "seller-1"),),
+            recommended_refund=Decimal("10.00"),
+            action="refund_freight",
+        )
+
+        self.assertEqual(
+            _build_evidence(order, payment, canceled),
+            [
+                "order:order-1",
+                "payment:order-1:1",
+                "policy:ORDER_CANCELED_AFTER_PAYMENT",
+            ],
+        )
+        self.assertEqual(
+            _build_evidence(order, payment, seller_late),
+            [
+                "order:order-1",
+                "item:order-1:1",
+                "payment:order-1:1",
+                "seller:seller-1",
+                "policy:SELLER_HANDOFF_AFTER_LIMIT",
+            ],
         )
 
 
@@ -289,9 +355,9 @@ class FullDatasetTests(unittest.TestCase):
 
     def test_model_metadata_is_truthful(self) -> None:
         metadata = build_metadata()
-        self.assertEqual(metadata["model_name"], "Llama 3.1 8B Instruct")
+        self.assertEqual(metadata["model_name"], "qwen-qwen3-8b")
         self.assertEqual(metadata["model_parameter_size_billion"], 8)
-        self.assertEqual(metadata["model_provider"], "Groq")
+        self.assertEqual(metadata["model_provider"], "Qwen")
         self.assertFalse(metadata["model_invocation_enabled"])
         self.assertEqual(metadata["execution_engine"], "deterministic_python")
 

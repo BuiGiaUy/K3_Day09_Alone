@@ -3,9 +3,9 @@
 from decimal import Decimal
 
 EXECUTION_ENGINE = "deterministic_python"
-MODEL_NAME = "Llama 3.1 8B Instruct"
+MODEL_NAME = "qwen-qwen3-8b"
 MODEL_PARAMETER_SIZE_BILLION = 8
-MODEL_PROVIDER = "Groq"
+MODEL_PROVIDER = "Qwen"
 MODEL_INVOCATION_ENABLED = False
 
 POLICY_VERSION = "EC_POLICY_V1"

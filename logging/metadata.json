@@ -1,7 +1,7 @@
 {
-  "model_name": "Llama 3.1 8B Instruct",
+  "model_name": "qwen-qwen3-8b",
   "model_parameter_size_billion": 8,
-  "model_provider": "Groq",
+  "model_provider": "Qwen",
   "model_invocation_enabled": false,
   "model_role": "compatible_reference_model",
   "execution_engine": "deterministic_python",

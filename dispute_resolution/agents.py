@@ -41,16 +41,6 @@ class AgentError(RuntimeError):
     """Raised when an agent cannot produce a valid deterministic result."""
 
 
-CONFIDENCE_BY_ISSUE = {
-    "canceled_order_paid": Decimal("0.98"),
-    "unavailable_order_paid": Decimal("0.98"),
-    "late_delivery_seller": Decimal("0.94"),
-    "late_delivery_logistics": Decimal("0.92"),
-    "valid_split_payment": Decimal("0.90"),
-    "unsupported_late_claim": Decimal("0.88"),
-}
-
-
 def money(value: Decimal) -> Decimal:
     return value.quantize(MONEY_QUANTUM, rounding=ROUND_HALF_UP)
 
@@ -223,7 +213,7 @@ class PolicyAgent:
         return PolicyDecision(
             primary_issue=issue,
             case_status="action_required" if refund > 0 else "no_action",
-            confidence=CONFIDENCE_BY_ISSUE[issue],
+            confidence=Decimal("1.0"),
             cause_code=cause,
             responsible_parties=parties,
             recommended_refund=money(refund),
@@ -308,9 +298,7 @@ class VerifierAgent:
             ) not in self.repository.seller_ids:
                 errors.append("responsible seller does not exist")
 
-        expected_evidence = _build_evidence(
-            task.order, task.payment, decision.cause_code
-        )
+        expected_evidence = _build_evidence(task.order, task.payment, decision)
         if candidate["evidence_ids"] != expected_evidence:
             errors.append("evidence IDs do not match reconstructable source evidence")
 
@@ -444,15 +432,49 @@ class VerifierAgent:
 
 
 def _build_evidence(
-    order: OrderSellerFinding, payment: PaymentFinding, cause_code: str
+    order: OrderSellerFinding, payment: PaymentFinding, decision: PolicyDecision
 ) -> list[str]:
-    """Build stable evidence with mandatory order and policy references."""
-    evidence = [f"order:{order.order_id}"]
-    optional = [
-        *(f"item:{order.order_id}:{item.item_id}" for item in order.items),
-        *(f"payment:{order.order_id}:{row.sequential}" for row in payment.rows),
-        *(f"seller:{seller_id}" for seller_id in order.seller_ids),
+    """Build issue-specific evidence rows used by the selected policy rule."""
+    order_evidence = [f"order:{order.order_id}"]
+    item_evidence = [f"item:{order.order_id}:{item.item_id}" for item in order.items]
+    payment_evidence = [
+        f"payment:{order.order_id}:{row.sequential}" for row in payment.rows
     ]
-    evidence.extend(optional[: MAX_EVIDENCE_IDS - 2])
-    evidence.append(f"policy:{cause_code}")
-    return evidence
+    seller_evidence = [
+        f"seller:{party.party_id}"
+        for party in decision.responsible_parties
+        if party.party_type == "seller"
+    ]
+    policy_evidence = [f"policy:{decision.cause_code}"]
+
+    if decision.primary_issue in {"canceled_order_paid", "unavailable_order_paid"}:
+        return _dedupe_limited(order_evidence + payment_evidence + policy_evidence)
+    if decision.primary_issue == "late_delivery_seller":
+        return _dedupe_limited(
+            order_evidence
+            + item_evidence
+            + payment_evidence
+            + seller_evidence
+            + policy_evidence
+        )
+    if decision.primary_issue in {"late_delivery_logistics", "unsupported_late_claim"}:
+        return _dedupe_limited(order_evidence + item_evidence + payment_evidence + policy_evidence)
+    if decision.primary_issue == "valid_split_payment":
+        return _dedupe_limited(order_evidence + payment_evidence + item_evidence + policy_evidence)
+    return _dedupe_limited(
+        order_evidence
+        + item_evidence
+        + payment_evidence
+        + [f"seller:{seller_id}" for seller_id in order.seller_ids]
+        + policy_evidence
+    )
+
+
+def _dedupe_limited(values: list[str]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        if value not in result:
+            result.append(value)
+        if len(result) == MAX_EVIDENCE_IDS:
+            break
+    return result

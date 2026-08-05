@@ -7,8 +7,8 @@ components. Every decision comes from Olist CSV facts and explicit policy rules.
 Agents exchange immutable dataclass messages; no free-form prompt or hidden rule
 is used.
 
-Llama 3.1 8B Instruct on Groq is the declared compatible reference model. Its
-8B parameter count is below the assignment's 10B limit, but
+`qwen-qwen3-8b` is the declared compatible reference model. Its 8B parameter
+count is below the assignment's 10B limit, but
 `MODEL_INVOCATION_ENABLED` is `false`. No LLM is called because the task is
 fully deterministic. The actual execution engine is Python.
 
