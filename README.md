@@ -1,34 +1,5 @@
 # K3 Day 09 - Multi-Agent E-commerce Dispute Resolution
 
-## Deterministic implementation
-
-This repository includes a standard-library Python 3.10 implementation with
-six autonomous software agents and typed dataclass handoffs. `qwen-qwen3-8b`
-is declared as a compatible reference model but is not invoked; all decisions
-are derived deterministically from the CSV data and `EC_POLICY_V1`.
-
-Run and publish the verified 50-case result:
-
-```bash
-python -m dispute_resolution
-```
-
-Compute and validate without writing artifacts:
-
-```bash
-python -m dispute_resolution --validate-only
-```
-
-Run the test suite:
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-Successful publication creates exactly 50 files in `output/`, replaces
-`logging/trace.jsonl`, and writes `logging/metadata.json`. See
-`architecture.md` for agent boundaries, data access, handoffs, and validation.
-
 ## 1. Bài toán
 
 Xây dựng một hệ thống multi-agent để điều tra 50 yêu cầu hỗ trợ của khách hàng trên dữ liệu Olist. Với mỗi case, hệ thống phải đối chiếu nhiều nguồn dữ liệu, xác định vấn đề, bên chịu trách nhiệm, bằng chứng, khoản hoàn đề xuất và hành động xử lý.
